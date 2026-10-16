@@ -450,7 +450,9 @@ impl Ctx {
                 let vfs_path = sc.output.join("vfsoverlay.json");
                 let vfs_file = std::fs::File::create(&vfs_path)
                     .with_context(|| format!("failed to create VFS overlay file at {vfs_path}"))?;
-                serde_json::to_writer_pretty(vfs_file, &*vfs.lock())
+                let mut vfs = vfs.lock();
+                vfs.sort_and_dedup();
+                serde_json::to_writer_pretty(vfs_file, &*vfs)
                     .with_context(|| format!("failed to write VFS overlay file to {vfs_path}"))?;
             }
 

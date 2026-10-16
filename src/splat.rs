@@ -804,9 +804,14 @@ pub(crate) fn splat(
                     if config.enable_symlinks || config.vfsoverlay {
                         let mut title_case = roots.sdk.clone();
                         title_case.push("Lib");
-                        if !title_case.exists() {
-                            symlink("lib", &title_case, symlink_target)?;
-                        }
+                        // The overlay entry is added even when the path already
+                        // exists so that the overlay is the same on case-insensitive
+                        // filesystems, where `Lib` resolves to `lib`.
+                        let target = SymlinkTarget {
+                            create: symlink_target.create && !title_case.exists(),
+                            ..symlink_target
+                        };
+                        symlink("lib", &title_case, target)?;
                     }
                 }
                 PayloadKind::SdkHeaders => {
@@ -825,9 +830,14 @@ pub(crate) fn splat(
                     if config.enable_symlinks || config.vfsoverlay {
                         let mut title_case = roots.sdk.clone();
                         title_case.push("Include");
-                        if !title_case.exists() {
-                            symlink("include", &title_case, symlink_target)?;
-                        }
+                        // The overlay entry is added even when the path already
+                        // exists so that the overlay is the same on case-insensitive
+                        // filesystems, where `Include` resolves to `include`.
+                        let target = SymlinkTarget {
+                            create: symlink_target.create && !title_case.exists(),
+                            ..symlink_target
+                        };
+                        symlink("include", &title_case, target)?;
                     }
                 }
                 _ => (),

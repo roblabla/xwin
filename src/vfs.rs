@@ -13,7 +13,7 @@ pub struct VfsOverlay {
     pub roots: Vec<VfsEntry>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 #[serde(tag = "type")]
 pub enum VfsEntry {
@@ -46,7 +46,31 @@ mod pathbuf_serializer {
     }
 }
 
+impl VfsEntry {
+    fn sort_key(&self) -> (&PathBuf, &PathBuf) {
+        match self {
+            Self::File {
+                name,
+                external_contents,
+            }
+            | Self::DirectoryRemap {
+                name,
+                external_contents,
+            } => (name, external_contents),
+        }
+    }
+}
+
 impl VfsOverlay {
+    /// Entries are pushed from parallel splat tasks and from `HashMap`
+    /// iteration, so their order varies between runs. Sorting keeps the
+    /// generated file reproducible, and deduping drops the aliases that several
+    /// architectures register for the same path.
+    pub fn sort_and_dedup(&mut self) {
+        self.roots.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+        self.roots.dedup();
+    }
+
     pub fn new() -> Self {
         Self {
             version: 0,
